@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HALO 7i — Absensi & Database</title>
+<style>
+:root{--bg:#07111f;--panel:#101e30;--panel2:#14263b;--line:#263b53;--text:#edf5ff;--muted:#9bb0c8;--blue:#38bdf8;--green:#34d399;--red:#fb7185;--yellow:#fbbf24}
+*{box-sizing:border-box}body{margin:0;padding:22px 14px;background:radial-gradient(circle at top,#12314b,#07111f 55%);font-family:Arial,sans-serif;color:var(--text);min-height:100vh}
+.wrap{max-width:1000px;margin:auto}.hero{text-align:center;margin:8px 0 22px}.hero h1{margin:0;font-size:clamp(25px,6vw,38px);letter-spacing:1px}.hero p{color:var(--muted);margin:8px 0}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tab,button{border:0;border-radius:10px;padding:11px 14px;font-weight:700;cursor:pointer}.tab{background:var(--panel2);color:var(--muted)}.tab.active{background:var(--blue);color:#062033}
+.panel{background:rgba(16,30,48,.96);border:1px solid var(--line);border-radius:16px;padding:17px;margin-bottom:14px;box-shadow:0 12px 30px #0003}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.field{flex:1;min-width:145px}label{display:block;color:var(--muted);font-size:13px;margin:0 0 7px}input,select{width:100%;padding:12px;border-radius:9px;border:1px solid var(--line);background:#091727;color:var(--text);font-size:15px;outline:none}input:focus,select:focus{border-color:var(--blue)}
+button.primary{background:var(--blue);color:#062033}button.good{background:var(--green);color:#05251b}button.danger{background:#7f2638;color:#fff}button.ghost{background:var(--panel2);color:var(--text)}button:active{transform:scale(.98)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px}.stat{background:var(--panel2);padding:13px;border-radius:12px;text-align:center}.stat b{display:block;font-size:25px}.stat span{font-size:12px;color:var(--muted)}
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:600px}th,td{padding:11px 9px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}th{color:var(--muted);font-weight:600}.status{font-weight:bold}.hadir{color:var(--green)}.izin{color:var(--yellow)}.sakit{color:var(--blue)}.alpa{color:var(--red)}
+.actions{display:flex;gap:6px;flex-wrap:wrap}.actions button{padding:7px 9px;font-size:12px}.hidden{display:none!important}.empty{text-align:center;color:var(--muted);padding:22px}.note{color:var(--muted);font-size:12px;line-height:1.5}.section-title{margin:0 0 14px;font-size:18px}
+@media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}.panel{padding:13px}.tab{flex:1}.row button{width:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero"><h1>HALO 7i ABSENSI</h1><p>Data siswa • Kehadiran • Rekap harian</p></header>
+<div class="tabs">
+<button class="tab active" data-page="attendance">Absensi</button>
+<button class="tab" data-page="database">Database Siswa</button>
+<button class="tab" data-page="report">Rekap Data</button>
+</div>
+
+<section id="attendance" class="page">
+<div class="panel">
+<div class="row">
+<div class="field"><label for="attDate">Tanggal absensi</label><input type="date" id="attDate"></div>
+<div class="field"><label for="searchAtt">Cari nama siswa</label><input id="searchAtt" placeholder="Ketik nama siswa..."></div>
+</div>
+</div>
+<div class="stats">
+<div class="stat"><b id="countAll">0</b><span>Total siswa</span></div>
+<div class="stat"><b id="countHadir">0</b><span>Hadir</span></div>
+<div class="stat"><b id="countIzin">0</b><span>Izin / Sakit</span></div>
+<div class="stat"><b id="countAlpa">0</b><span>Alpa</span></div>
+</div>
+<div class="panel">
+<h2 class="section-title">Daftar kehadiran</h2>
+<div class="table-wrap"><table><thead><tr><th>No.</th><th>Nama siswa</th><th>Status</th><th>Keterangan</th></tr></thead><tbody id="attendanceBody"></tbody></table></div>
+<p class="note">Perubahan status tersimpan otomatis di perangkat ini.</p>
+</div>
+</section>
+
+<section id="database" class="page hidden">
+<div class="panel">
+<h2 class="section-title">Tambah siswa</h2>
+<form id="studentForm" class="row">
+<div class="field"><label for="studentName">Nama lengkap</label><input id="studentName" required maxlength="70" placeholder="Masukkan nama siswa"></div>
+<div class="field"><label for="studentNumber">Nomor absen (opsional)</label><input id="studentNumber" type="number" min="1" placeholder="Contoh: 1"></div>
+<button class="primary" type="submit">+ Tambah siswa</button>
+</form>
+</div>
+<div class="panel">
+<div class="row" style="justify-content:space-between"><h2 class="section-title">Database siswa</h2><button class="danger" id="clearStudents">Hapus semua siswa</button></div>
+<div class="table-wrap"><table><thead><tr><th>No.</th><th>Nama siswa</th><th>Aksi</th></tr></thead><tbody id="studentBody"></tbody></table></div>
+</div>
+</section>
+
+<section id="report" class="page hidden">
+<div class="panel">
+<h2 class="section-title">Rekap absensi</h2>
+<div class="row">
+<div class="field"><label for="reportDate">Pilih tanggal</label><input type="date" id="reportDate"></div>
+<button class="primary" id="exportCsv">Unduh rekap CSV</button>
+</div>
+<div class="stats" style="margin-top:14px">
+<div class="stat"><b id="rHadir">0</b><span>Hadir</span></div><div class="stat"><b id="rIzin">0</b><span>Izin</span></div><div class="stat"><b id="rSakit">0</b><span>Sakit</span></div><div class="stat"><b id="rAlpa">0</b><span>Alpa</span></div>
+</div>
+<div class="table-wrap"><table><thead><tr><th>No.</th><th>Nama siswa</th><th>Status</th><th>Keterangan</th></tr></thead><tbody id="reportBody"></tbody></table></div>
+</div>
+<div class="panel"><h2 class="section-title">Cadangan data</h2><p class="note">Simpan salinan database dan absensi agar data tidak hilang saat browser atau perangkat dibersihkan.</p><div class="row"><button class="good" id="backup">Ekspor cadangan JSON</button><label class="ghost" style="padding:11px 14px;border-radius:10px;cursor:pointer">Impor cadangan JSON <input id="restore" type="file" accept=".json,application/json" hidden></label></div></div>
+</section>
+<footer class="note" style="text-align:center;padding:12px">HALO 7i • Data disimpan secara lokal di browser perangkat ini.</footer>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const today=()=>new Date().toLocaleDateString('en-CA');
+let students=JSON.parse(localStorage.getItem('halo7_students')||'[]');
+let records=JSON.parse(localStorage.getItem('halo7_records')||'{}');
+$('attDate').value=today();$('reportDate').value=today();
+function save(){localStorage.setItem('halo7_students',JSON.stringify(students));localStorage.setItem('halo7_records',JSON.stringify(records))}
+function recordFor(date){if(!records[date])records[date]={};return records[date]}
+function statusClass(s){return ({Hadir:'hadir',Izin:'izin',Sakit:'sakit',Alpa:'alpa'})[s]||''}
+function renderAttendance(){
+ const date=$('attDate').value||today(), data=recordFor(date), q=$('searchAtt').value.toLowerCase();
+ let counts={Hadir:0,Izin:0,Sakit:0,Alpa:0};
+ students.forEach(s=>{let v=data[s.id]?.status||'Alpa';counts[v]=(counts[v]||0)+1});
+ $('countAll').textContent=students.length;$('countHadir').textContent=counts.Hadir;$('countIzin').textContent=counts.Izin+counts.Sakit;$('countAlpa').textContent=counts.Alpa;
+ $('attendanceBody').innerHTML=students.map((s,i)=>({s,i})).filter(x=>x.s.name.toLowerCase().includes(q)).map(({s,i})=>{
+ let v=data[s.id]||{status:'Alpa',note:''};return `<tr><td>${i+1}</td><td>${esc(s.name)}</td><td><select aria-label="Status ${esc(s.name)}" onchange="setStatus('${s.id}',this.value)">${['Hadir','Izin','Sakit','Alpa'].map(x=>`<option ${v.status===x?'selected':''}>${x}</option>`).join('')}</select></td><td><input value="${esc(v.note||'')}" placeholder="Keterangan..." onchange="setNote('${s.id}',this.value)"></td></tr>`
+ }).join('')||`<tr><td colspan="4" class="empty">Belum ada data siswa. Tambahkan siswa di menu Database Siswa.</td></tr>`;
+}
+function setStatus(id,status){let d=recordFor($('attDate').value);d[id]={...d[id],status};save();renderAttendance();renderReport()}
+function setNote(id,note){let d=recordFor($('attDate').value);d[id]={...d[id],note};save()}
+function renderStudents(){$('studentBody').innerHTML=students.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.name)}</td><td><button class="danger" onclick="removeStudent('${s.id}')">Hapus</button></td></tr>`).join('')||'<tr><td colspan="3" class="empty">Database siswa masih kosong.</td></tr>'}
+function removeStudent(id){let s=students.find(x=>x.id===id);if(!s||!confirm('Hapus '+s.name+' dari database?'))return;students=students.filter(x=>x.id!==id);save();renderAll()}
+function renderReport(){let date=$('reportDate').value||today(),data=recordFor(date),counts={Hadir:0,Izin:0,Sakit:0,Alpa:0};students.forEach(s=>{let v=data[s.id]?.status||'Alpa';counts[v]++});$('rHadir').textContent=counts.Hadir;$('rIzin').textContent=counts.Izin;$('rSakit').textContent=counts.Sakit;$('rAlpa').textContent=counts.Alpa;$('reportBody').innerHTML=students.map((s,i)=>{let v=data[s.id]||{status:'Alpa',note:''};return `<tr><td>${i+1}</td><td>${esc(s.name)}</td><td class="status ${statusClass(v.status)}">${v.status||'Alpa'}</td><td>${esc(v.note||'-')}</td></tr>`}).join('')||'<tr><td colspan="4" class="empty">Belum ada data.</td></tr>'}
+function renderAll(){renderStudents();renderAttendance();renderReport()}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('studentForm').addEventListener('submit',e=>{e.preventDefault();let name=$('studentName').value.trim();if(!name)return;if(students.some(s=>s.name.toLowerCase()===name.toLowerCase())){alert('Nama siswa sudah ada.');return}students.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),name,number:$('studentNumber').value});save();$('studentName').value='';$('studentNumber').value='';renderAll()});
+$('clearStudents').onclick=()=>{if(confirm('Yakin ingin menghapus semua siswa? Data absensi lama juga akan ikut terhapus.')){students=[];records={};save();renderAll()}};
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!==b.dataset.page));renderAll()});
+$('attDate').onchange=renderAttendance;$('searchAtt').oninput=renderAttendance;$('reportDate').onchange=renderReport;
+function download(name,content,type){let a=document.createElement('a'),url=URL.createObjectURL(new Blob([content],{type}));a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
+$('exportCsv').onclick=()=>{let date=$('reportDate').value||today(),data=recordFor(date),rows=[['Tanggal','No','Nama','Status','Keterangan'],...students.map((s,i)=>[date,i+1,s.name,data[s.id]?.status||'Alpa',data[s.id]?.note||''])];let csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');download('rekap-absensi-'+date+'.csv','\ufeff'+csv,'text/csv;charset=utf-8')};
+$('backup').onclick=()=>download('cadangan-halo7i.json',JSON.stringify({students,records},null,2),'application/json');
+$('restore').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let d=JSON.parse(await f.text());if(!Array.isArray(d.students)||typeof d.records!=='object')throw Error();if(!confirm('Impor akan mengganti data saat ini. Lanjutkan?'))return;students=d.students;records=d.records;save();renderAll();alert('Cadangan berhasil diimpor.')}catch{alert('File cadangan tidak valid.')}e.target.value=''};
+renderAll();
+</script>
+</body>
+</html>
